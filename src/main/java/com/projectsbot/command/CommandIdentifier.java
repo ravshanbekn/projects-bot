@@ -1,4 +1,4 @@
-package com.projectsbot.commands;
+package com.projectsbot.command;
 
 public enum CommandIdentifier {
     VIEW_TREE("^\\/viewTree$"),

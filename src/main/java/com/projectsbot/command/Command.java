@@ -1,6 +1,10 @@
-package com.projectsbot.commands;
+package com.projectsbot.command;
+
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
 
 public interface Command {
     CommandIdentifier getIdentifier();
-    String execute(String message);
+
+    SendMessage executeCommand(Update userUpdate);
 }

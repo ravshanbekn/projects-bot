@@ -1,7 +1,8 @@
-package com.projectsbot.services;
+package com.projectsbot.service;
 
-import com.projectsbot.commands.Command;
-import com.projectsbot.exceptions.UnsupportedCommandException;
+import com.projectsbot.command.Command;
+import com.projectsbot.builder.SendMessageBuilder;
+import com.projectsbot.exception.UnsupportedCommandException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +16,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class TelegramBotService extends TelegramLongPollingBot {
+public class TelegramBotService extends TelegramLongPollingBot implements SendMessageBuilder {
     @Value("${bot.name}")
     private String botName;
     private final List<Command> commands;
@@ -36,26 +37,25 @@ public class TelegramBotService extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Long chatId = update.getMessage().getChatId();
-            String userMessage = update.getMessage().getText();
+            String userMessage = update.getMessage().getText().trim();
             try {
-                String commandExecutionResult = commands.stream()
+                SendMessage commandResponse = commands.stream()
                         .filter(command -> command.getIdentifier().matches(userMessage))
                         .findFirst()
-                        .orElseThrow(() -> new UnsupportedCommandException("Unsupported command entered"))
-                        .execute(userMessage);
-                sendMessage(chatId, commandExecutionResult);
+                        .orElseThrow(() -> new UnsupportedCommandException("Unsupported command entered. " +
+                                "Enter command: /help to see more information about commands"))
+                        .executeCommand(update);
+                sendMessage(commandResponse);
             } catch (Exception e) {
-                sendMessage(chatId, e.getMessage());
+                SendMessage sendMessage = buildMessage(chatId, e.getMessage());
+                sendMessage(sendMessage);
             }
         }
     }
 
-    private void sendMessage(long chatId, String text) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(chatId));
-        message.setText(text);
+    private void sendMessage(SendMessage sendMessage) {
         try {
-            execute(message);
+            execute(sendMessage);
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
